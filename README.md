@@ -32,3 +32,7 @@ Gunakan model `tiny` atau `base` dan audio pendek untuk menguji deploy CPU;
 model lebih berat atau audio panjang dapat lambat atau kehabisan memori.
 File dan transkrip pada aplikasi cloud tidak disimpan permanen, jadi unduh
 hasil sebelum menutup sesi.
+
+Jika decoder gagal membaca file, coba unggah ulang atau ekspor audio ke MP3
+atau WAV, lalu jalankan transkripsi kembali. Detail error decoder ditampilkan
+di aplikasi untuk membantu diagnosis.

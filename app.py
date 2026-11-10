@@ -1,6 +1,5 @@
 from html import escape
 from io import BytesIO
-import tempfile
 import time
 from pathlib import Path
 
@@ -125,50 +124,60 @@ if submitted:
     else:
         model_name = MODEL_OPTIONS[model_label]
         language = "id" if language_label == "Bahasa Indonesia" else None
-        suffix = Path(uploaded_file.name).suffix or ".audio"
         started_at = time.perf_counter()
         segments_data = []
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            audio_path = Path(temp_dir) / f"upload{suffix}"
-            audio_path.write_bytes(uploaded_file.getvalue())
+        audio_stream = BytesIO(uploaded_file.getvalue())
+        if not audio_stream.getbuffer().nbytes:
+            st.error("File audio kosong. Silakan pilih file audio lain.")
+        else:
             model = load_model(model_name)
             status = st.status("Memulai transkripsi...", expanded=True)
-            segments, info = model.transcribe(
-                str(audio_path),
-                language=language,
-                beam_size=5,
-                vad_filter=True,
-                initial_prompt=prompt.strip() or None,
-            )
-
-            for segment in segments:
-                segments_data.append(
-                    {
-                        "id": len(segments_data) + 1,
-                        "start": float(segment.start),
-                        "end": float(segment.end),
-                        "text": segment.text.strip(),
-                    }
+            try:
+                segments, info = model.transcribe(
+                    audio_stream,
+                    language=language,
+                    beam_size=5,
+                    vad_filter=True,
+                    initial_prompt=prompt.strip() or None,
                 )
-                if len(segments_data) % 10 == 0:
-                    status.update(
-                        label=(
-                            f"Memproses {len(segments_data)} segmen "
-                            f"(sampai {format_timestamp(segment.end)})..."
-                        )
-                    )
 
-        elapsed_seconds = time.perf_counter() - started_at
-        status.update(label="Transkripsi selesai.", state="complete", expanded=False)
-        st.session_state["transcription_result"] = {
-            "audio_file": uploaded_file.name,
-            "model": model_name,
-            "language": info.language,
-            "language_probability": float(info.language_probability),
-            "processing_time_seconds": elapsed_seconds,
-            "segments": segments_data,
-        }
+                for segment in segments:
+                    segments_data.append(
+                        {
+                            "id": len(segments_data) + 1,
+                            "start": float(segment.start),
+                            "end": float(segment.end),
+                            "text": segment.text.strip(),
+                        }
+                    )
+                    if len(segments_data) % 10 == 0:
+                        status.update(
+                            label=(
+                                f"Memproses {len(segments_data)} segmen "
+                                f"(sampai {format_timestamp(segment.end)})..."
+                            )
+                        )
+            except TypeError as error:
+                status.update(label="Gagal membaca file audio.", state="error")
+                st.error(
+                    f"Decoder gagal membaca file ({type(error).__name__}: {error}). "
+                    "Coba unggah ulang atau ekspor audio sebagai MP3 atau WAV."
+                )
+            else:
+                elapsed_seconds = time.perf_counter() - started_at
+                status.update(
+                    label="Transkripsi selesai.",
+                    state="complete",
+                    expanded=False,
+                )
+                st.session_state["transcription_result"] = {
+                    "audio_file": uploaded_file.name,
+                    "model": model_name,
+                    "language": info.language,
+                    "language_probability": float(info.language_probability),
+                    "processing_time_seconds": elapsed_seconds,
+                    "segments": segments_data,
+                }
 
 result = st.session_state.get("transcription_result")
 if result:
