@@ -11,7 +11,7 @@ import streamlit as st
 import av
 from faster_whisper import WhisperModel
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
@@ -182,11 +182,16 @@ def create_transcript_pdf(result: dict) -> bytes:
         textColor=colors.HexColor("#16324F"),
         spaceAfter=12,
     )
-    segment_style = ParagraphStyle(
-        "TranscriptSegment",
+    transcript_style = ParagraphStyle(
+        "TranscriptBody",
         parent=styles["BodyText"],
-        leading=15,
-        spaceAfter=8,
+        leading=18,
+        alignment=TA_JUSTIFY,
+    )
+    transcript_text = " ".join(
+        segment["text"].strip()
+        for segment in result["segments"]
+        if segment["text"].strip()
     )
 
     content = [
@@ -195,18 +200,8 @@ def create_transcript_pdf(result: dict) -> bytes:
         Paragraph(f"<b>Bahasa:</b> {escape(result['language'])}", styles["BodyText"]),
         Paragraph(f"<b>Model:</b> {escape(result['model'])}", styles["BodyText"]),
         Spacer(1, 16),
+        Paragraph(escape(transcript_text), transcript_style),
     ]
-    for segment in result["segments"]:
-        timestamp = (
-            f"[{format_timestamp(segment['start'])} - "
-            f"{format_timestamp(segment['end'])}]"
-        )
-        content.append(
-            Paragraph(
-                f"<b>{timestamp}</b> {escape(segment['text'])}",
-                segment_style,
-            )
-        )
 
     document.build(content)
     return buffer.getvalue()
