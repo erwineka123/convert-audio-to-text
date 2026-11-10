@@ -20,7 +20,7 @@ Pada Linux/macOS, aktivasi environment virtual menggunakan
 
 ## Deploy ke Streamlit Community Cloud
 
-1. Push `app.py` dan `requirements.txt` ke repository GitHub.
+1. Push `app.py`, `requirements.txt`, dan `packages.txt` ke repository GitHub.
 2. Masuk ke [Streamlit Community Cloud](https://share.streamlit.io/) dan pilih
    **Create app**.
 3. Hubungkan repository, branch, dan set **Main file path** ke `app.py`.
@@ -28,13 +28,13 @@ Pada Linux/macOS, aktivasi environment virtual menggunakan
    `requirements.txt`.
 
 Saat pertama dipakai, model Whisper diunduh dan disimpan dalam cache aplikasi.
-Gunakan model `tiny` atau `base` dan audio pendek untuk menguji deploy CPU;
-model lebih berat atau audio panjang dapat lambat atau kehabisan memori.
+Audio dipotong otomatis menjadi bagian 5 menit agar penggunaan memori lebih
+terkendali. Transkripsi audio panjang tetap dapat memakan waktu lama di CPU;
+gunakan model `tiny` atau `base` untuk menguji deploy.
 File dan transkrip pada aplikasi cloud tidak disimpan permanen, jadi unduh
 hasil sebelum menutup sesi.
 
-Jika decoder gagal membaca file, coba unggah ulang atau ekspor audio ke MP3
-atau WAV, lalu jalankan transkripsi kembali. PyAV dibatasi ke versi di bawah
-19 agar kompatibel dengan pemanggilan decoder oleh Faster-Whisper. Setelah
-mengubah `requirements.txt`, push perubahan dan tunggu Streamlit Cloud selesai
-rebuild sebelum mencoba kembali.
+PyAV dibatasi ke versi di bawah 19 agar kompatibel dengan Faster-Whisper.
+`packages.txt` memasang FFmpeg untuk mengukur durasi serta memotong audio.
+Setelah mengubah file dependency, push perubahan dan tunggu Streamlit Cloud
+selesai rebuild sebelum mencoba kembali.
