@@ -34,5 +34,7 @@ File dan transkrip pada aplikasi cloud tidak disimpan permanen, jadi unduh
 hasil sebelum menutup sesi.
 
 Jika decoder gagal membaca file, coba unggah ulang atau ekspor audio ke MP3
-atau WAV, lalu jalankan transkripsi kembali. Detail error decoder ditampilkan
-di aplikasi untuk membantu diagnosis.
+atau WAV, lalu jalankan transkripsi kembali. PyAV dibatasi ke versi di bawah
+19 agar kompatibel dengan pemanggilan decoder oleh Faster-Whisper. Setelah
+mengubah `requirements.txt`, push perubahan dan tunggu Streamlit Cloud selesai
+rebuild sebelum mencoba kembali.
