@@ -1,10 +1,17 @@
-import json
+from html import escape
+from io import BytesIO
 import tempfile
 import time
 from pathlib import Path
 
 import streamlit as st
 from faster_whisper import WhisperModel
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 
 DEFAULT_PROMPT = (
@@ -34,6 +41,55 @@ def format_timestamp(seconds: float) -> str:
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def create_transcript_pdf(result: dict) -> bytes:
+    buffer = BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2 * cm,
+        leftMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+        title=f"Transkrip - {result['audio_file']}",
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "TranscriptTitle",
+        parent=styles["Title"],
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#16324F"),
+        spaceAfter=12,
+    )
+    segment_style = ParagraphStyle(
+        "TranscriptSegment",
+        parent=styles["BodyText"],
+        leading=15,
+        spaceAfter=8,
+    )
+
+    content = [
+        Paragraph("Transkrip Audio", title_style),
+        Paragraph(f"<b>File audio:</b> {escape(result['audio_file'])}", styles["BodyText"]),
+        Paragraph(f"<b>Bahasa:</b> {escape(result['language'])}", styles["BodyText"]),
+        Paragraph(f"<b>Model:</b> {escape(result['model'])}", styles["BodyText"]),
+        Spacer(1, 16),
+    ]
+    for segment in result["segments"]:
+        timestamp = (
+            f"[{format_timestamp(segment['start'])} - "
+            f"{format_timestamp(segment['end'])}]"
+        )
+        content.append(
+            Paragraph(
+                f"<b>{timestamp}</b> {escape(segment['text'])}",
+                segment_style,
+            )
+        )
+
+    document.build(content)
+    return buffer.getvalue()
 
 
 st.set_page_config(page_title="Audio ke Teks", page_icon="🎙️", layout="wide")
@@ -131,19 +187,12 @@ if result:
     )
     st.text_area("Teks transkrip", value=transcript, height=360)
 
-    json_result = json.dumps(result, ensure_ascii=False, indent=2)
-    col_txt, col_json = st.columns(2)
-    with col_txt:
-        st.download_button(
-            "Unduh TXT",
-            data=transcript,
-            file_name="transcript.txt",
-            mime="text/plain",
-        )
-    with col_json:
-        st.download_button(
-            "Unduh JSON",
-            data=json_result,
-            file_name="transcript.json",
-            mime="application/json",
-        )
+    pdf_result = create_transcript_pdf(result)
+    pdf_name = f"transkrip_{Path(result['audio_file']).stem}.pdf"
+    st.download_button(
+        "Unduh transkrip PDF",
+        data=pdf_result,
+        file_name=pdf_name,
+        mime="application/pdf",
+        type="primary",
+    )

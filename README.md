@@ -2,8 +2,9 @@
 
 Aplikasi Streamlit untuk mentranskripsikan file audio menggunakan
 Faster-Whisper. Aplikasi menggunakan CPU dan model `tiny`, `base`, atau
-`small`; `large-v3` dari notebook memerlukan GPU dan tidak cocok untuk
-Streamlit Community Cloud.
+`small`; hasil transkripsi langsung dapat diunduh sebagai PDF. Model
+`large-v3` dari notebook memerlukan GPU dan tidak cocok untuk Streamlit
+Community Cloud.
 
 ## Jalankan lokal
 
